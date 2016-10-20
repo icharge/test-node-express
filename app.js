@@ -11,6 +11,7 @@ var authentication = require('express-authentication');
 var routes = require('./routes/index');
 var users = require('./routes/users');
 var mt4 = require('./routes/mt4');
+var chat = require('./routes/chat');
 
 var app = express();
 
@@ -49,6 +50,7 @@ app.use('/', routes);
 app.use('/users', users);
 
 app.use('/mt4', mt4);
+app.use('/chat', chat);
 
 app.get('/secret', authentication.required(), function (req, res) {
   res.status(200).send('Hello!');
