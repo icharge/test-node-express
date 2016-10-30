@@ -5,6 +5,7 @@ var path = require('path');
 module.exports = router;
 
 router.get('/', function (req, res) {
-  res.sendFile(path.resolve('files/chat.html'));
+  // res.sendFile(path.resolve('files/chat.html'));
+  res.render('chat');
 });
 
