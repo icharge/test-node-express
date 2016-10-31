@@ -24,7 +24,7 @@ router.get('/load/:fileName', function (req, res, next) {
       'Pragma': 'no-cache',
       'Expires': 0,
       'Content-type': 'text/plain'
-    })
+    });
 
     var resultArray = data;
     res.send(resultArray);
