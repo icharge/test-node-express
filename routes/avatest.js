@@ -1,18 +1,21 @@
 /// <reference path="../typings/index.d.ts" />
 
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
+const encoding = require('encoding');
 
-var cheerio = require('cheerio');
+const avaLib = require('./ava-lib');
+const cheerio = require('cheerio');
 // var $ = cheerio.load('<div id="aa" class="bar"><p>abcdefg</p></div>');
 
-var unirest = require('unirest');
-var cookie = unirest.jar();
+const unirest = require('unirest');
+
+var cookie = unirest.jar(true);
 var headers = {
   'Cache-Control': 'no-cache, no-store, must-revalidate',
   'Pragma': 'no-cache',
   'Expires': 0,
-  'Content-type': 'text/plain'
+  'Content-type': 'text/html; charset=utf-8'
 };
 
 var host = 'http://portal.avalant.co.th/Avale_CRWeb';
@@ -32,14 +35,8 @@ router.get('/', function (req, res, next) {
         normalizeWhitespace: false
       });
 
-      var username = '';
-      var $topMenu = $('form[name="topMenu"] table tr td font.bkbold');
-      if ($topMenu.length) {
-        username = $topMenu[0].children[0].data;
-        username = String.prototype.trim.call(username);
-        username = username.substring(username.indexOf(':') + 1, username.length).trim();
-      }
-      
+      var username = avaLib.getUsername($);
+
       console.log('Username :', username);
 
       res.set(headers);
@@ -67,7 +64,60 @@ router.get('/login', function (req, res, next) {
       });
 
       res.set(headers);
-      res.send(200, $.html());
+      res.status(200).send(`
+      <h2>Logged in as ${avaLib.getUsername($)}</h2>
+      `)
+    });
+});
+
+router.get('/timesheet', function (req, res, next) {
+
+  unirest.get(url.timesheet)
+    .jar(cookie)
+    .followRedirect(true)
+    .end(function (response) {
+      var $ = cheerio.load(encoding.convert(response.body, 'UTF-8', 'TIS620'), {
+        normalizeWhitespace: false
+      });
+
+      var $timesheetTable = $('form[name=ToDoForm] table table table tr:has(.textlabeldate0)');
+      var timesheetList = [];
+      // console.log('Timesheet table : ', $timesheetTable);
+      if ($timesheetTable && $timesheetTable.length) {
+        $timesheetTable.each(function (i, row) {
+          var $row = $(row);
+          var $column = $row.find('td');
+
+          timesheetList.push({
+            id: $($column[0]).find('a').text(),
+            name: $($column[1]).text(),
+            weekOf: $($column[2]).text(),
+            createDate: $($column[3]).text(),
+            status: $($column[4]).text(),
+            note: $($column[5]).text()
+          });
+        });
+        // for (var i = 0; i < $timesheetTable.length; i++) {
+        //   var row = $($timesheetTable[i]);
+        //   var column = row.find('td');
+
+        //   timesheetList.push({
+        //     id: $(column[0]).find('a').text(),
+        //     name: $(column[1]).text(),
+        //     weekOf: $(column[2]).text(),
+        //     createDate: $(column[3]).text(),
+        //     status: $(column[4]).text(),
+        //     note: $(column[5]).text()
+        //   });
+
+        // }
+      }
+
+      res.set(headers);
+      res.status(200).send(`
+      <h2>Saved Timesheet table</h2>
+      <pre>${JSON.stringify(timesheetList, null, 2)}</pre>
+      `);
     });
 });
 
